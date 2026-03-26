@@ -1,0 +1,108 @@
+name: lambda-terraform-deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "dev"
+      aws_region:
+        description: "AWS region"
+        required: true
+        default: "us-east-1"
+      terraform_apply:
+        description: "Run terraform apply"
+        required: true
+        default: "false"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      TF_IN_AUTOMATION: true
+      TF_INPUT: false
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Package Lambda
+        working-directory: internal
+        run: |
+          mkdir -p build
+          cd lambda_src
+          zip -r ../build/lambda.zip .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ github.event.inputs.aws_region }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: gha-lambda-terraform
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: internal
+        run: terraform init
+
+      - name: Terraform validate
+        working-directory: internal
+        run: terraform validate
+
+      - name: Terraform plan
+        working-directory: internal
+        run: |
+          terraform plan \
+            -var "environment=${{ github.event.inputs.environment }}" \
+            -var "aws_region=${{ github.event.inputs.aws_region }}" \
+            -out=tfplan
+
+      - name: Terraform apply
+        if: ${{ github.event.inputs.terraform_apply == 'true' }}
+        working-directory: internal
+        run: terraform apply -auto-approve tfplan
+
+      - name: Verify IAM role attachment
+        if: ${{ github.event.inputs.terraform_apply == 'true' }}
+        working-directory: internal
+        run: |
+          role_name=$(terraform output -raw lambda_role_name)
+          aws iam get-role --role-name "$role_name" >/dev/null
+          aws iam list-attached-role-policies --role-name "$role_name"
+
+      - name: Smoke test Lambda invoke
+        if: ${{ github.event.inputs.terraform_apply == 'true' }}
+        working-directory: internal
+        run: |
+          function_name=$(terraform output -raw lambda_name)
+          aws lambda invoke \
+            --function-name "$function_name" \
+            --payload '{"source":"github-actions","test":"lambda-only"}' \
+            --cli-binary-format raw-in-base64-out \
+            response.json
+          cat response.json
+
+      - name: Show recent Lambda logs
+        if: ${{ github.event.inputs.terraform_apply == 'true' }}
+        working-directory: internal
+        run: |
+          function_name=$(terraform output -raw lambda_name)
+          aws logs tail "/aws/lambda/$function_name" --since 5m
