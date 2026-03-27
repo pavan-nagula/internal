@@ -1,17 +1,12 @@
 name: lambda-terraform-plan
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-  pull_request:
-    branches:
-      - main
-    paths:
-      - "**/*.tf"
-      - "lambda_src/**"
-      - ".github/workflows/**"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to Plan (dev/stage/prod)"
+        required: true
+        default: "dev"
 
 permissions:
   id-token: write     # REQUIRED for OIDC
