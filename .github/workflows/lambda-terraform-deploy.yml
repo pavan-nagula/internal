@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  id-token: write      # required for OIDC
+  id-token: write # required for OIDC
   contents: read
 
 jobs:
@@ -31,8 +31,7 @@ jobs:
 
       - name: Package Lambda
         run: |
-          mkdir -p build
-          zip -rq build/lambda.zip lambda_src/
+          zip -rq lambda_function.zip lambda_src/
 
       # -----------------------------------
       # ASSUME AWS IAM ROLE VIA GITHUB OIDC
@@ -55,7 +54,6 @@ jobs:
 
       - name: Terraform validate
         run: terraform validate
-        
 
       - name: Terraform apply
         run: terraform apply -auto-approve
