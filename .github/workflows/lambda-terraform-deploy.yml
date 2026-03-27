@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment to destroy (dev/stage/prod)"
+        description: "Environment to Apply (dev/stage/prod)"
         required: true
         default: "dev"
 
