@@ -31,11 +31,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Package Lambda
-        run: |
-          mkdir -p build
-          zip -rq build/lambda.zip lambda_src/
-
    # -----------------------------------
       # ASSUME AWS IAM ROLE VIA GITHUB OIDC
       # -----------------------------------
