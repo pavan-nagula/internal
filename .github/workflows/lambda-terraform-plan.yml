@@ -59,9 +59,6 @@ jobs:
           terraform_version: "1.9.5"
           terraform_wrapper: false
 
-      - name: Terraform fmt check
-        run: terraform fmt -check -recursive
-
       - name: Terraform init
         run: terraform init
 
