@@ -1,26 +1,28 @@
 module "lambda" {
   source = "git::https://github.com/pavan-nagula/module-lambda.git//terraform-cts-umb-module-lambda-main?ref=main"
 
-  project      = var.project
-  environment  = var.environment
-  lambda_name  = var.lambda_name
+  
+  for_each    = var.lambdas_config
+  project     = each.value.project
+  environment = each.value.environment
+  lambda_name = each.value.lambda_name
 
-  python_runtime   = var.python_runtime
-  handler          = var.handler
-  lambda_zip_path  = var.lambda_zip_path
-  timeout_seconds  = var.timeout_seconds
-  memory_mb        = var.memory_mb
-  log_retention_days = var.log_retention_days
+  # Lambda configuration
+  python_runtime  = each.value.python_runtime
+  handler         = each.value.handler
+  lambda_zip_path = each.value.lambda_zip_path
+  timeout_seconds = each.value.timeout_seconds
+  memory_mb       = each.value.memory_mb
+  iam_roles_path  = each.value.iam_roles_path
+  env_vars = merge(
+    each.value.env_vars
+  )
+  log_retention_days = each.value.log_retention_days
 
-  env_vars = var.env_vars
+  # EventBridge scheduled trigger
+  enable_eventbridge_trigger = try(each.value.enable_eventbridge_trigger, false)
+  schedule_expression        = try(each.value.schedule_expression, "rate(5 minutes)")
 
-  subnet_ids          = var.subnet_ids
-  security_group_ids  = var.security_group_ids
-  iam_roles_path      = var.iam_roles_path
-  enable_xray_tracing = var.enable_xray_tracing
-
-  enable_eventbridge_trigger = false
-  enable_msk_trigger         = false
-
-  tags = var.tags
+  # X-Ray tracing
+  enable_xray_tracing = try(each.value.enable_xray_tracing, false)
 }
