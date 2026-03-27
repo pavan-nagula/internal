@@ -1,6 +1,10 @@
 name: lambda-terraform-pr-plan
 
 on:
+  push:
+    branches:
+      - main
+      - develop
   pull_request:
     branches:
       - main
