@@ -8,7 +8,7 @@ lambda = {
     lambda_zip_path = "./lambda_function.zip"
     timeout_seconds = 300
     memory_mb       = 256
-    iam_roles_path  = "/deviceeventprocessinglambda"
+    iam_roles_path  = "/deviceeventprocessinglambda/"
     env_vars = {
       LOG_LEVEL = "INFO"
     }
