@@ -6,7 +6,7 @@ on:
       environment:
         description: "Environment to Apply (dev/stage/prod)"
         required: true
-        default: "dev"
+        default: "prod"
 
 permissions:
   id-token: write # required for OIDC
@@ -60,5 +60,4 @@ jobs:
         run: terraform validate
 
       - name: Terraform apply
-        if: true
         run: terraform apply -auto-approve
