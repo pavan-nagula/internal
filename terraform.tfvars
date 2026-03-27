@@ -1,4 +1,4 @@
-lambdas = {
+lambda = {
   "device-event-processing" = {
     project         = "Device Event Processing"
     environment     = "boil"
