@@ -1,11 +1,11 @@
 lambda = {
   "device-event-processing" = {
-    project         = "Device Event Processing"
+    project         = "Device-Event-Processing"
     environment     = "boil"
     lambda_name     = "device-event-processing-lambda"
     python_runtime  = "python3.12"
     handler         = "lambda_function.lambda_handler"
-    lambda_zip_path = "../../lambda-function.zip"
+    lambda_zip_path = "./lambda_function.zip"
     timeout_seconds = 300
     memory_mb       = 256
     iam_roles_path  = "/device-event-processing-lambda"
