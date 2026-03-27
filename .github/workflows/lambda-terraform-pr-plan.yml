@@ -39,8 +39,7 @@ jobs:
       - name: Package Lambda
         run: |
           mkdir -p build
-          cd lambda_src
-          zip -r ../build/lambda.zip .
+          zip -rq build/lambda.zip lambda_src/
 
       - name: Configure AWS credentials
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
@@ -53,6 +52,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
+          terraform_version: "1.9.5"
           terraform_wrapper: false
 
       - name: Terraform fmt check
@@ -68,7 +68,13 @@ jobs:
         if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: terraform plan -out=tfplan
 
+      - name: Upload tfplan artifact
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan
+
       - name: Terraform plan skipped notice for forks
         if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
-        run: |
-          echo "Plan step skipped for fork pull requests because AWS secrets are unavailable."
+        run: echo "Plan skipped for fork PRs due to missing AWS credentials."
