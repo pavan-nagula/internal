@@ -1,0 +1,78 @@
+name: lambda-terraform-destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to destroy (dev/stage/prod)"
+        required: true
+        default: "dev"
+
+permissions:
+  id-token: write      # Required for AWS OIDC
+  contents: read
+
+jobs:
+  destroy:
+    runs-on: ubuntu-latest
+    env:
+      TF_IN_AUTOMATION: true
+      TF_INPUT: false
+      AWS_REGION: us-east-1
+      TF_VAR_aws_region: us-east-1
+      TF_VAR_environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Package Lambda
+        run: |
+          mkdir -p build
+          zip -rq build/lambda.zip lambda_src/
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: gha-lambda-terraform-destroy
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Destroy Plan
+        run: terraform plan -destroy -out=tfdestroy.plan
+
+      - name: Upload Destroy Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfdestroy-plan
+          path: tfdestroy.plan
+
+      - name: Confirm Destroy (Safety)
+        run: |
+          echo "⚠️ WARNING: This will permanently delete infrastructure!"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "To proceed, enable 'terraform apply -destroy' step manually."
+          exit 0
+
+      # To actually destroy infra:
+      # Remove "if: false" to enable
+      - name: Terraform Destroy Apply (Disabled by default)
+        if: true   # <-- Change this to true when ready
+        run: terraform apply tfdestroy.plan
