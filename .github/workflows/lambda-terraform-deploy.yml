@@ -1,119 +1,60 @@
-# name: Deploy Lambda Function
+name: lambda-terraform-deploy
 
-# on:
-#   push:
-#     branches:
-#       - main
-#       - develop
-#   pull_request:
-#     branches:
-#       - main
-#       - develop
+on:
+  push:
+    branches:
+      - main
 
-# env:
-#   AWS_REGION: us-east-1 # Change to your region
-#   TERRAFORM_VERSION: 1.5.7
+permissions:
+  id-token: write      # required for OIDC
+  contents: read
 
-# jobs:
-#   package-and-deploy:
-#     runs-on: ubuntu-latest
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-#     permissions:
-#       id-token: write
-#       contents: read
+    env:
+      TF_IN_AUTOMATION: true
+      TF_INPUT: false
+      AWS_REGION: us-east-1
+      TF_VAR_environment: prod
+      TF_VAR_aws_region: us-east-1
 
-#     steps:
-#       # Checkout code
-#       - name: Checkout code
-#         uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-#       # Setup Python (optional, for Python linting)
-#       - name: Set up Python
-#         uses: actions/setup-python@v4
-#         with:
-#           python-version: "3.12"
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-#       # Package Lambda function
-#       - name: Package Lambda function
-#         run: |
-#           cd internal/scripts
-#           bash package_lambda.sh
-#           cd ../..
-#           echo "Lambda packaged successfully"
-#           ls -lh lambda-function.zip
+      - name: Package Lambda
+        run: |
+          mkdir -p build
+          zip -rq build/lambda.zip lambda_src/
 
-#       # Setup Terraform
-#       - name: Setup Terraform
-#         uses: hashicorp/setup-terraform@v2
-#         with:
-#           terraform_version: ${{ env.TERRAFORM_VERSION }}
+      # -----------------------------------
+      # ASSUME AWS IAM ROLE VIA GITHUB OIDC
+      # -----------------------------------
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::436812234045:role/OIDC
+          role-session-name: gha-lambda-terraform-apply
 
-#       # Configure AWS credentials (using OIDC for security)
-#       - name: Configure AWS credentials
-#         uses: aws-actions/configure-aws-credentials@v4
-#         with:
-#           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-#           aws-region: ${{ env.AWS_REGION }}
-#           # Alternative: Use access keys
-#           # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#           # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.5"
+          terraform_wrapper: false
 
-#       # Terraform Init
-#       - name: Terraform Init
-#         working-directory: ./internal
-#         run: terraform init
+      - name: Terraform init
+        run: terraform init
 
-#       # Terraform Validate
-#       - name: Terraform Validate
-#         working-directory: ./internal
-#         run: terraform validate
+      - name: Terraform validate
+        run: terraform validate
 
-#       # Terraform Format Check
-#       - name: Terraform Format Check
-#         working-directory: ./internal
-#         run: terraform fmt -check -recursive
-
-#       # Terraform Plan
-#       - name: Terraform Plan
-#         working-directory: ./internal
-#         run: terraform plan -out=tfplan
-
-#       # Upload plan as artifact
-#       - name: Upload Terraform Plan
-#         uses: actions/upload-artifact@v3
-#         with:
-#           name: tfplan
-#           path: ./internal/tfplan
-
-#       # Terraform Apply (only on push to main, not on PRs)
-#       - name: Terraform Apply
-#         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-#         working-directory: ./internal
-#         run: |
-#           terraform apply -auto-approve tfplan
-#           echo "Lambda deployed successfully"
-
-#       # Comment on PR with plan results
-#       - name: Comment on PR
-#         if: github.event_name == 'pull_request'
-#         uses: actions/github-script@v6
-#         with:
-#           script: |
-#             const fs = require('fs');
-#             const plan = fs.readFileSync('./internal/tfplan.json', 'utf8');
-#             github.rest.issues.createComment({
-#               issue_number: context.issue.number,
-#               owner: context.repo.owner,
-#               repo: context.repo.repo,
-#               body: '## Terraform Plan\n```\n' + plan + '\n```'
-#             });
-
-#       # Notify on success
-#       - name: Success Notification
-#         if: success()
-#         run: echo "Pipeline completed successfully!"
-
-#       # Notify on failure
-#       - name: Failure Notification
-#         if: failure()
-#         run: echo "Pipeline failed. Check logs above."
+      - name: Terraform apply
+        run: terraform apply -auto-approve
