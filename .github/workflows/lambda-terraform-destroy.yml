@@ -36,12 +36,15 @@ jobs:
           mkdir -p build
           zip -rq build/lambda.zip lambda_src/
 
-      - name: Configure AWS Credentials
+   # -----------------------------------
+      # ASSUME AWS IAM ROLE VIA GITHUB OIDC
+      # -----------------------------------
+      - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-session-name: gha-lambda-terraform-destroy
+          role-to-assume: arn:aws:iam::436812234045:role/OIDC
+          role-session-name: gha-lambda-terraform-apply
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
