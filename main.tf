@@ -1,5 +1,5 @@
 module "lambda" {
-  source = "git::https://github.com/pavan-nagula/module-lambda.git//terraform-cts-umb-module-lambda-main?ref=main"
+  source = "git::https://github.com/pavan-nagula/module-lambda?ref=main"
 
 
   for_each    = var.lambda
