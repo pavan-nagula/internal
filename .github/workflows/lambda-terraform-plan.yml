@@ -1,4 +1,4 @@
-name: lambda-terraform-pr-plan
+name: lambda-terraform-plan
 
 on:
   push:
