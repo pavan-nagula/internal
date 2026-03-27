@@ -55,6 +55,7 @@ jobs:
 
       - name: Terraform validate
         run: terraform validate
+        
 
       - name: Terraform apply
         run: terraform apply -auto-approve
