@@ -1,20 +1,20 @@
-aws_region  = "us-east-1"
-project     = "demo"
-environment = "dev"
-lambda_name = "demo-message-processor"
-
-python_runtime = "python3.12"
-handler        = "lambda_function.lambda_handler"
-
-# CI creates this zip in internal/build.
-lambda_zip_path = "./build/lambda.zip"
-
-env_vars = {
-  APP_ENV = "dev"
-}
-
-tags = {
-  Owner   = "Engineering"
-  Project = "Device-Event-Processor"
-  Managed = "Terraform"
+lambdas = {
+  "device-event-processing" = {
+    project         = "Device Event Processing"
+    environment     = "boil"
+    lambda_name     = "device-event-processing-lambda"
+    python_runtime  = "python3.12"
+    handler         = "lambda_function.lambda_handler"
+    lambda_zip_path = "../../lambda-function.zip"
+    timeout_seconds = 300
+    memory_mb       = 256
+    iam_roles_path  = "/device-event-processing-lambda"
+    env_vars = {
+      LOG_LEVEL = "INFO"
+    }
+    log_retention_days         = 90
+    enable_eventbridge_trigger = true
+    schedule_expression        = "rate(5 minutes)"
+    enable_xray_tracing        = false
+  }
 }
