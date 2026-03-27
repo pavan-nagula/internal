@@ -34,7 +34,8 @@ jobs:
 
       - name: Package Lambda
         run: |
-          zip -rq lambda_function.zip lambda_src/
+          chmod +x lambda_src/package_lambda.sh
+          cd lambda_src && ./package_lambda.sh
 
       # -----------------------------------
       # ASSUME AWS IAM ROLE VIA GITHUB OIDC
