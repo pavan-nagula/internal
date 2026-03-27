@@ -59,5 +59,4 @@ jobs:
         run: terraform validate
 
       - name: Terraform apply
-        if: false   # <-- Change this to true when ready
         run: terraform apply -auto-approve
